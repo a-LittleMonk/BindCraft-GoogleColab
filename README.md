@@ -1,24 +1,37 @@
-# BindCraft on Colab — TGF-β1 peptide binders
+# BindCraft on Colab
 
 A patched copy of the BindCraft Colab notebook that actually runs on current
-Colab (Python 3.13, recent JAX), set up to design peptide binders against
-TGF-β1 (PDB 3KFD).
+Colab (Python 3.13, recent JAX). Works against any target; it currently ships
+configured for TGF-β1 as a worked example.
 
 ## Files
 
 | File | What it is |
 |---|---|
 | `BindCraft_final.ipynb` | The notebook. 14 numbered cells, run in order. |
-| `tgfb1.pdb` | The target. Chains A and B of 3KFD, 112 residues each, no waters or ligands. The notebook uses chain A only. |
+| `examples/tgfb1.pdb` | **Example target only, not part of the setup.** Chains A and B of 3KFD, 112 residues each, no waters or ligands. The notebook is set to use chain A. |
 
 ## How to use it
 
-1. Upload both files to Google Drive. The notebook expects the target at
-   `/content/drive/MyDrive/tgfb1.pdb` — if you put it elsewhere, change
-   `starting_pdb` in cell 3.
-2. Open `BindCraft_final.ipynb` in Colab and set the runtime to a GPU.
-3. Run cells **1 through 14 in order**. Cells 8 and 9 must come after cell 6;
+1. Put your target PDB on Google Drive and upload the notebook to Colab.
+2. In cell 3, point the settings at your target:
+   - `starting_pdb` — the path on Drive, e.g. `/content/drive/MyDrive/mytarget.pdb`
+   - `chains` — which chain(s) to design against
+   - `target_hotspot_residues` — the interface residues to aim at, e.g. `A31,A34`,
+     or leave blank to let BindCraft choose
+   - `binder_name` and `design_path` — the name and output folder for this campaign
+3. Set the Colab runtime to a GPU.
+4. Run cells **1 through 14 in order**. Cells 8 and 9 must come after cell 6;
    they raise an error telling you so if they don't.
+
+The target must be a clean PDB: no waters, no ligands, no alternate
+conformations. The example file shows the expected shape.
+
+### The example
+
+To reproduce the TGF-β1 run instead, upload `examples/tgfb1.pdb` to the root of
+your Drive. Cell 3 already points at `/content/drive/MyDrive/tgfb1.pdb` with
+chain A and hotspots `A31,A34,A91,A94`.
 
 **Close the Colab tab before editing the notebook from anywhere else.** An open
 tab writes its stale in-memory copy back to Drive, which makes Drive fork the
@@ -37,9 +50,9 @@ cannot fold into anything confident enough to pass the trajectory quality gate �
 residues scored 0.74–0.76. Set the range too low and BindCraft rejects
 everything and loops without ever accepting a design.
 
-Also clear out `/content/drive/MyDrive/BindCraft/TGFb1/` before starting fresh.
-BindCraft resumes from whatever CSV files it finds there, so leftover designs
-from an earlier run get ranked alongside new ones.
+Also give each campaign its own `design_path`, and clear the folder before
+starting fresh. BindCraft resumes from whatever CSV files it finds there, so
+leftover designs from an earlier run get ranked alongside new ones.
 
 ## What was changed from upstream
 
