@@ -2,14 +2,12 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/a-LittleMonk/BindCraft-GoogleColab/blob/main/BindCraft_final.ipynb)
 
-**The repo is private, so this needs a one-time authorisation.** In Colab:
-*File > Open notebook > GitHub*, tick **Include private repos**, and authorise.
-After that the badge above opens the notebook directly, and so does pasting the
-repo URL into that same GitHub tab. Without it, Colab reports the notebook as not
-found — the link is fine, it just cannot see a private repo yet.
+One click, no sign-in: the repo is public, so Colab can read it anonymously.
 
-Colab opens it read-only from GitHub. *File > Save a copy in Drive* to get an
-editable copy; your form settings live in that copy, not here.
+Colab opens a GitHub notebook **read-only**. Use *File > Save a copy in Drive* to
+get a runnable copy — and note that the form values you then enter (target,
+contigs, hotspots) are saved in that copy, not here, so the repo stays a clean
+template.
 
 A patched copy of the BindCraft Colab notebook that actually runs on current
 Colab (Python 3.13, recent JAX). Works against any target; it currently ships
