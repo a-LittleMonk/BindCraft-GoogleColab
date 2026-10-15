@@ -55,7 +55,7 @@ ships a PDL1 example, this one is set up for TGF-β1 peptide binders:
 | `binder_name` | `TGFb1` |
 | `starting_pdb` | `/content/drive/MyDrive/tgfb1.pdb` |
 | `chains` | `A` |
-| `target_hotspot_residues` | `A31,A34,A91,A94` |
+| `target_hotspot_residues` | *(blank — BindCraft picks the site)* |
 | `design_protocol` | `Peptide` |
 | `filter_option` | `Peptide` |
 | `lengths` | `25,40` |
@@ -64,7 +64,14 @@ ships a PDL1 example, this one is set up for TGF-β1 peptide binders:
 Change the first three for a different target, and remember that
 `starting_pdb` has to be a path that exists on *your* Drive.
 
-Two of these are worth understanding rather than just accepting.
+Three of these are worth understanding rather than just accepting.
+
+**The hotspot field ships blank on purpose.** Left empty, BindCraft picks the
+interface itself rather than being aimed at one. Naming residues constrains it
+to a patch you have chosen, which is worth doing once you know the site is
+druggable — but a patch that is mostly charged and polar gives a short peptide
+very little to grip, and an unhelpful patch is worse than none. Starting blank
+lets the run tell you where it wants to bind.
 
 **`lengths` matters more than it looks.** Binders shorter than roughly 20
 residues cannot fold into anything confident enough to pass the trajectory
@@ -83,7 +90,7 @@ raise it, or point `design_path` somewhere new.
 
 To reproduce the TGF-β1 run, upload `examples/tgfb1.pdb` to the root of your
 Drive. Cell 3 already points at `/content/drive/MyDrive/tgfb1.pdb` with chain A
-and hotspots `A31,A34,A91,A94`.
+and the hotspot field left blank.
 
 ## Designing peptide binders
 
