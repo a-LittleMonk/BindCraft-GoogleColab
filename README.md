@@ -346,6 +346,20 @@ and adds it to a copy of the normal trust store. **Verification is not
 disabled** — the root it chains to is already trusted, and every certificate is
 still checked.
 
+When it does fall back, **the wheel is downloaded by the cell rather than by
+pip**, with a progress bar:
+
+```
+  [===================                     ]  48.3%    807/1594 MB   1.3 MB/s  ETA 10.1 min
+```
+
+That is not cosmetic. The Johns Hopkins mirror serves at roughly 1-2 MB/s, so
+the 1.67 GB wheel takes 20-30 minutes — and pip prints *nothing* for the whole
+of it, because it only draws a progress bar when writing to a terminal, which
+it is not inside a notebook. The cell therefore sat completely silent for half
+an hour and looked hung while working perfectly. Now you can see it moving,
+and pip is handed a local file it installs in seconds.
+
 Finally, the cell **verifies PyRosetta is importable before claiming success**,
 and raises otherwise. Re-running it retries, so an outage no longer means
 resetting the runtime.
