@@ -44,18 +44,40 @@ designs from an earlier run get ranked alongside new ones.
 tab writes its stale in-memory copy back to Drive, which makes Drive fork the
 file into `... (1).ipynb`. That wasted a fair amount of time once already.
 
-### Check these two settings before a real run
+### What it ships configured for
 
-The notebook ships with the values from a debugging session:
+Like upstream, this notebook comes with its form fields filled in — upstream
+ships a PDL1 example, this one is set up for TGF-β1 peptide binders:
 
-- cell 3: `lengths = "25,30"` → widen to something like `"25,40"`
-- cell 5: `filter_option = "None"` → set to `"Peptide"`
+| Field | Value |
+|---|---|
+| `design_path` | `/content/drive/MyDrive/BindCraft/TGFb1/` |
+| `binder_name` | `TGFb1` |
+| `starting_pdb` | `/content/drive/MyDrive/tgfb1.pdb` |
+| `chains` | `A` |
+| `target_hotspot_residues` | `A31,A34,A91,A94` |
+| `design_protocol` | `Peptide` |
+| `filter_option` | `Peptide` |
+| `lengths` | `25,40` |
+| `number_of_final_designs` | `10` |
 
-`lengths` matters more than it looks. Binders shorter than roughly 20 residues
-cannot fold into anything confident enough to pass the trajectory quality gate —
-11- and 12-residue attempts scored 0.34–0.44 where the gate is 0.70, while 28–29
-residues scored 0.74–0.76. Set the range too low and BindCraft rejects
-everything and loops without ever accepting a design.
+Change the first three for a different target, and remember that
+`starting_pdb` has to be a path that exists on *your* Drive.
+
+Two of these are worth understanding rather than just accepting.
+
+**`lengths` matters more than it looks.** Binders shorter than roughly 20
+residues cannot fold into anything confident enough to pass the trajectory
+quality gate — 11- and 12-residue attempts scored 0.34–0.44 where the gate is
+0.70, while 28–29 residues scored 0.74–0.76. Set the range too low and
+BindCraft rejects everything and loops without ever accepting a design.
+
+**`number_of_final_designs` is a stopping condition, not a request.** The run
+loop counts the designs already in `design_path` before it starts and exits
+immediately if that count has been reached. It used to ship as `1`, which meant
+any folder with a previous result in it made a fresh run exit in zero seconds.
+At `10` there is room to work, but the same thing happens once you reach 10 —
+raise it, or point `design_path` somewhere new.
 
 ### The worked example
 
@@ -75,7 +97,8 @@ peptides that short "almost never" pass the filters. Two things follow:
   accepted designs after a handful of trajectories is the expected outcome, not
   evidence of a broken setup.
 - **Use the peptide settings on both sides**: `design_protocol = "Peptide"` in
-  cell 4 *and* `filter_option = "Peptide"` in cell 5. `None` disables filtering
+  cell 4 *and* `filter_option = "Peptide"` in cell 5 — both are preset here, but
+  it is easy to change one and forget the other. `None` disables filtering
   entirely, which is for benchmarking — it does not make designs easier to get,
   since the trajectory gates in cell 10 run before any filter.
 
