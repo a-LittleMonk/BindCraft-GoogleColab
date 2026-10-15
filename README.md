@@ -360,10 +360,15 @@ large downloads now share one progress line:
 
 The AlphaFold download runs in the background while ColabDesign installs, and
 upstream simply waited for a marker file in a sleep loop. That wait is now
-where its progress is reported, measured from the growing tar. aria2c is told
+where progress is reported, measured from the growing tar. aria2c is told
 `--file-allocation=none` for this to work at all: it preallocates by default,
 which makes the file jump to full size immediately and leaves nothing to
 measure.
+
+In practice the download usually wins that race — 5 GB from Google Storage
+often lands before ColabDesign has finished installing — so the cell says so
+and switches to watching the **extraction** instead, which is the part that
+really takes minutes and which upstream never reported at all.
 
 For PyRosetta, **the wheel is downloaded by the cell rather than by pip**, with
 the same bar:
