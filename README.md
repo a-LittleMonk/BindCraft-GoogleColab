@@ -326,6 +326,17 @@ The cell then **verifies PyRosetta is importable before claiming success**, and
 raises a clear error if both mirrors failed. Re-running it retries the install
 on its own, so an outage no longer means resetting the runtime.
 
+The fallback also has to repair the second mirror's TLS on the way past.
+`graylab.jhu.edu` serves an incomplete certificate chain — its leaf certificate
+is issued by *InCommon RSA OV SSL CA 3*, but the server still sends an older
+intermediate, so nothing can build a path to the root and Python stops with
+`CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate`. Browsers
+and curl paper over this by fetching the missing certificate themselves;
+urllib and pip do not. The cell fetches it from the address the leaf names and
+adds it to a copy of the normal trust store. **Verification is not disabled** —
+the root it chains to is already trusted, and every certificate is still
+checked.
+
 ### Cell 3 — settings check
 
 Upstream's cell 3 writes the settings JSON and nothing else, so every mistake
