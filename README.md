@@ -13,6 +13,23 @@ A patched copy of the BindCraft Colab notebook that actually runs on current
 Colab (Python 3.13, recent JAX). Works against any target; it currently ships
 configured for TGF-β1 as a worked example.
 
+## When every trajectory is rejected
+
+`Severe clashes detected, skipping analysis and MPNN optimisation` comes from
+upstream's gate: it counts any two CA atoms closer than 2.5 A in the predicted
+complex, excluding same-residue and directly sequential pairs. Because it looks at
+CA only, it does **not** skip same-chain pairs — a binder whose own backbone has
+collapsed trips it exactly like a binder driven into the target.
+
+That gate, and the `pLDDT < 0.7` one after it, are hardcoded in
+`functions/colabdesign_utils.py` and run **before** your Filters setting, so
+`filter_option = "None"` does not let these trajectories through.
+
+**Cell 15** tells you which of the three it is — clashes inside the target (no
+binder can ever pass; clean the PDB), inside the binder (usually too short), or
+between binder and target (usually the hotspots) — and reports the mean binder
+pLDDT against that 0.7 gate.
+
 ## How it differs from upstream BindCraft
 
 Checked cell by cell against
@@ -57,7 +74,7 @@ The two added cells are the only ones that touch behaviour:
 
 | File | What it is |
 |---|---|
-| `BindCraft_final.ipynb` | The notebook. 14 numbered cells, run in order. |
+| `BindCraft_final.ipynb` | The notebook. 15 numbered cells; 1-14 run in order, 15 is a diagnostic. |
 | `examples/tgfb1.pdb` | **Example target only, not part of the setup.** Chains A and B of 3KFD, 112 residues each, no waters or ligands. The notebook is set to use chain A. |
 
 ## How to use it
