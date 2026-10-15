@@ -231,6 +231,23 @@ binder can ever pass; clean the PDB), inside the binder (usually too short), or
 between binder and target (usually the hotspots) — and reports the mean binder
 pLDDT against that 0.7 gate.
 
+### Cell 1 ends with `No matching distribution found for pyrosetta`
+
+A server outage, not your setup. See *Cell 1 — PyRosetta mirror fallback*
+below: from v1.9.0 the cell falls back to the Johns Hopkins mirror and stops
+on a genuine failure instead of reporting success.
+
+On an older copy, the install is skipped on re-run because the params marker
+already exists. Install PyRosetta by hand in a new cell:
+
+```python
+!pip install -q pyrosetta-installer
+!python -c "import pyrosetta_installer; pyrosetta_installer.install_pyrosetta(mirror=1, serialization=True)"
+```
+
+then carry on from cell 2 — the clone, ColabDesign and the AlphaFold params
+will already be in place.
+
 ### The same sequences come back every run
 
 That means no new design work happened. There is no global seed anywhere — each
@@ -261,7 +278,7 @@ Checked cell by cell against
 
 | Upstream cell | Here | |
 |---|---|---|
-| Installation | 1 | byte-identical |
+| Installation | 1 | PyRosetta mirror fallback — see below |
 | Mount Drive | 2 | byte-identical |
 | Binder design settings | 3 | form values, plus a settings check — see below |
 | Advanced settings | 4 | form values only (protocol choice) |
@@ -280,7 +297,34 @@ Checked cell by cell against
 Cell 1 clones upstream BindCraft and ColabDesign straight from their own
 repositories and pulls the official AlphaFold2 2022-12-06 parameters, so the
 algorithm code is upstream's at install time — nothing is vendored or forked
-here.
+here. The only edit is to how PyRosetta is fetched.
+
+### Cell 1 — PyRosetta mirror fallback
+
+Upstream installs PyRosetta from `west.rosettacommons.org` and nowhere else.
+That host is the Institute for Protein Design's file server at UW, and it does
+go down. When it does, three things compound:
+
+1. PyRosetta is not on PyPI, so pip has no fallback. It retries five times and
+   gives up.
+2. The cell printed `BindCraft installation is finished, ready to run!` anyway,
+   because nothing checked whether pip had succeeded. The failure only
+   surfaced four cells later, at *Initialise PyRosetta*.
+3. By then the AlphaFold params marker file existed, so re-running cell 1
+   skipped the entire install block and never retried — which made a passing
+   outage look permanent.
+
+PyRosetta is now installed outside that block, through
+[`pyrosetta-installer`](https://pypi.org/project/pyrosetta-installer/), which
+is RosettaCommons' own tool and knows both official mirrors. It tries
+`west.rosettacommons.org` first, exactly as upstream did, and falls back to
+`graylab.jhu.edu` (Johns Hopkins) if that one does not answer. It asks for the
+same `cxx11thread.serialization` build upstream asked for, and picks the wheel
+matching whatever Python Colab is running.
+
+The cell then **verifies PyRosetta is importable before claiming success**, and
+raises a clear error if both mirrors failed. Re-running it retries the install
+on its own, so an outage no longer means resetting the runtime.
 
 ### Cell 3 — settings check
 
