@@ -36,6 +36,29 @@ On hotspots, it advises a radial patch of surface residues and notes that good
 patches contain an aromatic (F/Y/W) along with I/L/M. A patch made only of
 charged and polar residues gives a short peptide very little to grip.
 
+## "Target number N of designs reached!" and it exits instantly
+
+Not a failure. Before sampling anything, the design loop counts the `.pdb` files
+in `Accepted/`; once that count has reached `number_of_final_designs` it reranks
+and stops. The number in the message is **the count it found, not your target**,
+which is what makes it read as if the target had been that number all along.
+
+One trajectory can produce more than one accepted design — `max_mpnn_sequences`
+is 2 — so a target of 1 is typically overshot to 2 on the first success.
+
+To design more, raise `number_of_final_designs` in cell 3, then re-run **in this
+order**:
+
+| | |
+|---|---|
+| cell 3 | writes the settings JSON |
+| cell 6 | reloads it — the run loop reads `target_settings` from memory, so this is what actually applies the new number |
+| cells 8, 9 | cell 6 re-imports the broken `clear_mem`, so the shims must go back on |
+| cell 10 | run |
+
+**Re-running cell 10 on its own keeps the old target and exits again.** Cell 15
+reports the count, the target, and whether the next run will do any work.
+
 ## When every trajectory is rejected
 
 `Severe clashes detected, skipping analysis and MPNN optimisation` comes from
