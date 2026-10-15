@@ -13,6 +13,46 @@ A patched copy of the BindCraft Colab notebook that actually runs on current
 Colab (Python 3.13, recent JAX). Works against any target; it currently ships
 configured for TGF-β1 as a worked example.
 
+## How it differs from upstream BindCraft
+
+Checked cell by cell against
+[martinpacesa/BindCraft](https://github.com/martinpacesa/BindCraft)
+(`notebooks/BindCraft.ipynb`). **The design logic is upstream's, unmodified.**
+
+| Upstream cell | Here | |
+|---|---|---|
+| Installation | 1 | byte-identical |
+| Mount Drive | 2 | byte-identical |
+| Binder design settings | 3 | form values only (target, lengths, hotspots) |
+| Advanced settings | 4 | form values only (protocol choice) |
+| Filters | 5 | form value only |
+| Import functions | 6 | byte-identical |
+| Initialise PyRosetta | 7 | byte-identical |
+| — | 8 | **added** — JAX/Python 3.13 shims |
+| — | 9 | **added** — tuning controls and presets |
+| Run BindCraft! | 10 | byte-identical (27 KB, the whole design loop) |
+| Consolidate & Rank | 11 | bug fix, post-processing only |
+| Top 20 Designs | 12 | byte-identical |
+| Top Design Display | 13 | guards an empty folder |
+| Display animation | 14 | bug fix, display only |
+
+Cell 1 clones upstream BindCraft and ColabDesign straight from their own
+repositories and pulls the official AlphaFold2 2022-12-06 parameters, so the
+algorithm code is upstream's at install time — nothing is vendored or forked
+here.
+
+The two added cells are the only ones that touch behaviour:
+
+- **Cell 8** shims `jnp.clip` (argument renaming only — it forwards to JAX's own
+  clip and self-tests both calling styles) and `clear_mem` (frees memory via
+  `jax.clear_caches()`, since the old `jax.lib.xla_bridge` path was removed).
+  Neither changes a number in the design maths.
+- **Cell 9** on `Production defaults` restores this protocol's own
+  `settings_advanced/*.json` values and rewrites the two hardcoded gates back to
+  upstream's `final_plddt < 0.7` and `ca_clashes > 0` — verified to reproduce
+  upstream's `colabdesign_utils.py` byte for byte. On `Fast debug` it relaxes
+  them deliberately, and says so loudly; designs from that preset are not valid.
+
 ## Files
 
 | File | What it is |
