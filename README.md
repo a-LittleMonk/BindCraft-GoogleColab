@@ -78,8 +78,50 @@ that into an error you get in a second. It covers:
 - the file having no `ATOM` records at all
 - `chains` naming a chain the file does not contain — it lists the ones it does
 
-It also prints the residue count per chain so you can see the target was read
-as you expected, warns if waters or ligands are still in the file, and says how
+It then prints a **target check** — what BindCraft is actually going to see,
+so you can confirm it before committing GPU hours:
+
+```
+====================================================================
+TARGET CHECK  -  tgfb1.pdb
+====================================================================
+chains in file:    A, B
+designing against: A
+ignored:           B
+
+chain A:  112 residues, numbered 1-112
+       1  ALDTNYCFSS TEKNCCVRQL YIDFRKDLGW KWIHEPKGYH ANFCLGPCPY
+      51  IWSLDTQYSK VLALYNQHNP GASAAPCCVP QALEPLPIVY YVGRKPKVEQ
+     101  LSNMIVRSCK CS
+
+chain B:  112 residues, numbered 1-112   (not selected)
+
+hotspots: A31,A34,A91,A94
+   A31     LYS  K
+   A34     HIS  H
+   A91     TYR  Y
+   A94     ARG  R
+   4 residues, 1 aromatic (F/Y/W), 0 hydrophobic (I/L/M/V)
+
+binder length:  25,40 residues, sampled per trajectory
+designs wanted: 10
+====================================================================
+```
+
+Each sequence line is labelled with the **real residue number** of its first
+residue, not a running count, so it stays honest about structures that do not
+start at 1 or that have holes in them. Gaps in the numbering are reported
+explicitly, because hotspots are given in PDB numbering and a structure that
+starts at residue 30 is a classic way to aim at the wrong site.
+
+Hotspots are resolved against the structure and named, in all the formats
+upstream accepts (`A31`, `A31-34`, `31`, or a bare `A` for the whole chain). A
+residue that does not exist, or one on a chain you did not select, is an error
+rather than something silently dropped during the run. The aromatic count is
+there because the upstream wiki advises patches containing F/Y/W alongside
+I/L/M — a patch with none gets a note saying so.
+
+Below the report it also warns about leftover waters or ligands, and says how
 many accepted designs are already sitting in `design_path` and whether the next
 run will therefore do any work.
 
@@ -247,9 +289,12 @@ in it surfaces much later: a wrong `starting_pdb` half an hour into the first
 trajectory, a wrong chain id deeper still. The form fields are unchanged, but a
 check now runs before the JSON is written and before any folder is created —
 placeholders, Drive not mounted, missing file, a file with no `ATOM` records,
-a chain that is not present. It raises on all of those, warns about leftover
-waters and ligands, and reports the per-chain residue count plus how many
-accepted designs `design_path` already holds.
+a chain that is not present, a hotspot that does not resolve. It raises on all
+of those, then prints a target check: chains found, which are being designed
+against, the one-letter sequence of each selected chain labelled by real
+residue number, numbering gaps, every hotspot named, the binder length range
+and the design count. Leftover waters and ligands get a warning, and it says
+how many accepted designs `design_path` already holds.
 
 It only reads; nothing about the design maths changes.
 
