@@ -372,6 +372,15 @@ had been running the whole time, invisibly. Both now run together and one loop
 waits for the pair, marking the line `(+ ColabDesign)` while that is still
 going.
 
+Progress is measured from the **blocks allocated on disk**, not the file's
+apparent size. aria2c fetches with 16 connections and no preallocation, so its
+output file is sparse: the connection handling the last chunk writes near the
+end within seconds, and the apparent size jumps to nearly the full length while
+almost nothing has arrived. A single byte written at the 70% offset reports 70%.
+Allocated blocks track what is actually there. Completion is taken from
+aria2c's own `.aria2` control file, which it deletes when the transfer is done
+— a far better signal than comparing sizes.
+
 The extraction is watched as well, by the params folder filling up. It takes
 several minutes and upstream reported none of it. Once the params are ready but
 ColabDesign is still building, the line says so plainly rather than showing a
