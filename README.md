@@ -365,10 +365,17 @@ where progress is reported, measured from the growing tar. aria2c is told
 which makes the file jump to full size immediately and leaves nothing to
 measure.
 
-In practice the download usually wins that race — 5 GB from Google Storage
-often lands before ColabDesign has finished installing — so the cell says so
-and switches to watching the **extraction** instead, which is the part that
-really takes minutes and which upstream never reported at all.
+ColabDesign is installed in the background too, which is what makes the bar
+useful. Upstream installed it in the foreground, so it blocked for several
+minutes with nothing on screen and the bar then appeared at 98% — the download
+had been running the whole time, invisibly. Both now run together and one loop
+waits for the pair, marking the line `(+ ColabDesign)` while that is still
+going.
+
+The extraction is watched as well, by the params folder filling up. It takes
+several minutes and upstream reported none of it. Once the params are ready but
+ColabDesign is still building, the line says so plainly rather than showing a
+finished bar with a rate decaying towards zero.
 
 For PyRosetta, **the wheel is downloaded by the cell rather than by pip**, with
 the same bar:
