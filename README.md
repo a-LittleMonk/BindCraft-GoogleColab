@@ -346,8 +346,27 @@ and adds it to a copy of the normal trust store. **Verification is not
 disabled** — the root it chains to is already trusted, and every certificate is
 still checked.
 
-When it does fall back, **the wheel is downloaded by the cell rather than by
-pip**, with a progress bar:
+### Cell 1 — progress on the long downloads
+
+Cell 1 pulls down about 7 GB in total and upstream reports none of it. Both
+large downloads now share one progress line:
+
+| What | Size | Upstream showed |
+|---|---|---|
+| AlphaFold2 parameters | 5.2 GB | one line, then silence |
+| PyRosetta wheel | 1.7 GB | nothing at all |
+| BindCraft clone | 6 MB | git's own progress |
+| ColabDesign | small | nothing, but it takes seconds |
+
+The AlphaFold download runs in the background while ColabDesign installs, and
+upstream simply waited for a marker file in a sleep loop. That wait is now
+where its progress is reported, measured from the growing tar. aria2c is told
+`--file-allocation=none` for this to work at all: it preallocates by default,
+which makes the file jump to full size immediately and leaves nothing to
+measure.
+
+For PyRosetta, **the wheel is downloaded by the cell rather than by pip**, with
+the same bar:
 
 ```
   [===================                     ]  48.3%    807/1594 MB   1.3 MB/s  ETA 10.1 min
