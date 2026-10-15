@@ -66,12 +66,22 @@ peptide design:
 deliberately not real: a path that silently works for someone else's Drive is
 worse than one that is obviously a placeholder.
 
-Mind how the failure shows up, though. BindCraft does not check `starting_pdb`
-when you set it — it re-reads the file at the *end* of each trajectory, to
-measure the design against the target. A path that does not exist therefore
-raises nothing for about half an hour, then kills the run with `Cannot open
-file`. Set it correctly before you start, and if a long run dies that way,
-check this field first.
+Cell 3 stops you immediately if you forget. That matters because upstream does
+not: BindCraft only opens `starting_pdb` at the *end* of each trajectory, to
+measure the design against the target, so a wrong path raises nothing for about
+half an hour and then kills the run with `Cannot open file`. The check turns
+that into an error you get in a second. It covers:
+
+- either path left as the placeholder
+- Drive not mounted yet (it points you back to cell 2)
+- `starting_pdb` not existing
+- the file having no `ATOM` records at all
+- `chains` naming a chain the file does not contain — it lists the ones it does
+
+It also prints the residue count per chain so you can see the target was read
+as you expected, warns if waters or ligands are still in the file, and says how
+many accepted designs are already sitting in `design_path` and whether the next
+run will therefore do any work.
 
 Three of these are worth understanding rather than just accepting.
 
@@ -211,7 +221,7 @@ Checked cell by cell against
 |---|---|---|
 | Installation | 1 | byte-identical |
 | Mount Drive | 2 | byte-identical |
-| Binder design settings | 3 | form values only (target, lengths, hotspots) |
+| Binder design settings | 3 | form values, plus a settings check — see below |
 | Advanced settings | 4 | form values only (protocol choice) |
 | Filters | 5 | form value only |
 | Import functions | 6 | byte-identical |
@@ -229,6 +239,19 @@ Cell 1 clones upstream BindCraft and ColabDesign straight from their own
 repositories and pulls the official AlphaFold2 2022-12-06 parameters, so the
 algorithm code is upstream's at install time — nothing is vendored or forked
 here.
+
+### Cell 3 — settings check
+
+Upstream's cell 3 writes the settings JSON and nothing else, so every mistake
+in it surfaces much later: a wrong `starting_pdb` half an hour into the first
+trajectory, a wrong chain id deeper still. The form fields are unchanged, but a
+check now runs before the JSON is written and before any folder is created —
+placeholders, Drive not mounted, missing file, a file with no `ATOM` records,
+a chain that is not present. It raises on all of those, warns about leftover
+waters and ligands, and reports the per-chain residue count plus how many
+accepted designs `design_path` already holds.
+
+It only reads; nothing about the design maths changes.
 
 ### Cell 8 — compatibility patches (required)
 
