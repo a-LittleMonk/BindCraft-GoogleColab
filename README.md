@@ -13,6 +13,29 @@ A patched copy of the BindCraft Colab notebook that actually runs on current
 Colab (Python 3.13, recent JAX). Works against any target; it currently ships
 configured for TGF-β1 as a worked example.
 
+## Designing peptide binders
+
+Per the [upstream wiki](https://github.com/martinpacesa/BindCraft/wiki/De-novo-binder-design-with-BindCraft),
+BindCraft supports peptides of **8-25 residues**. It will run down to 4, but
+peptides that short "almost never" pass the filters. Two things follow:
+
+- **Expect roughly 5-10x lower in-silico success** than normal binder design.
+  That is the single biggest practical constraint: at ~13 min a trajectory on a
+  T4, a realistic peptide campaign is tens of hours, not one session. Zero
+  accepted designs after a handful of trajectories is the expected outcome, not
+  evidence of a broken setup.
+- **Use the peptide settings on both sides**: `design_protocol = "Peptide"` in
+  cell 4 *and* `filter_option = "Peptide"` in cell 5. `None` disables filtering
+  entirely, which is for benchmarking - it does not make designs easier to get,
+  since the trajectory gates in cell 10 run before any filter.
+
+The wiki suggests sampling a **wide length range first**, then narrowing once you
+see what works for the target, rather than committing to one narrow band.
+
+On hotspots, it advises a radial patch of surface residues and notes that good
+patches contain an aromatic (F/Y/W) along with I/L/M. A patch made only of
+charged and polar residues gives a short peptide very little to grip.
+
 ## When every trajectory is rejected
 
 `Severe clashes detected, skipping analysis and MPNN optimisation` comes from
