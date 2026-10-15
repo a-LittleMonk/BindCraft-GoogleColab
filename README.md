@@ -44,25 +44,34 @@ designs from an earlier run get ranked alongside new ones.
 tab writes its stale in-memory copy back to Drive, which makes Drive fork the
 file into `... (1).ipynb`. That wasted a fair amount of time once already.
 
-### What it ships configured for
+### What it ships with
 
-Like upstream, this notebook comes with its form fields filled in — upstream
-ships a PDL1 example, this one is set up for TGF-β1 peptide binders:
+Upstream ships its fields filled in with a working PDL1 example. This notebook
+ships the two paths as **placeholders you must replace**, and the rest tuned for
+peptide design:
 
-| Field | Value |
-|---|---|
-| `design_path` | `/content/drive/MyDrive/BindCraft/TGFb1/` |
-| `binder_name` | `TGFb1` |
-| `starting_pdb` | `/content/drive/MyDrive/tgfb1.pdb` |
-| `chains` | `A` |
-| `target_hotspot_residues` | *(blank — BindCraft picks the site)* |
-| `design_protocol` | `Peptide` |
-| `filter_option` | `Peptide` |
-| `lengths` | `25,40` |
-| `number_of_final_designs` | `10` |
+| Field | Value | |
+|---|---|---|
+| `design_path` | `/content/drive/MyDrive/BindCraft/your_folder_Name/` | **replace** |
+| `starting_pdb` | `/content/drive/MyDrive/pdb_file_name.pdb` | **replace** |
+| `binder_name` | `TGFb1` | name this campaign |
+| `chains` | `A` | |
+| `target_hotspot_residues` | *(blank — BindCraft picks the site)* | |
+| `design_protocol` | `Peptide` | |
+| `filter_option` | `Peptide` | |
+| `lengths` | `25,40` | |
+| `number_of_final_designs` | `10` | |
 
-Change the first three for a different target, and remember that
-`starting_pdb` has to be a path that exists on *your* Drive.
+**The notebook will not run until you replace those two paths.** They are
+deliberately not real: a path that silently works for someone else's Drive is
+worse than one that is obviously a placeholder.
+
+Mind how the failure shows up, though. BindCraft does not check `starting_pdb`
+when you set it — it re-reads the file at the *end* of each trajectory, to
+measure the design against the target. A path that does not exist therefore
+raises nothing for about half an hour, then kills the run with `Cannot open
+file`. Set it correctly before you start, and if a long run dies that way,
+check this field first.
 
 Three of these are worth understanding rather than just accepting.
 
@@ -88,9 +97,17 @@ raise it, or point `design_path` somewhere new.
 
 ### The worked example
 
-To reproduce the TGF-β1 run, upload `examples/tgfb1.pdb` to the root of your
-Drive. Cell 3 already points at `/content/drive/MyDrive/tgfb1.pdb` with chain A
-and the hotspot field left blank.
+To run the TGF-β1 example, upload `examples/tgfb1.pdb` to the root of your
+Drive and set cell 3 to:
+
+```
+design_path  = /content/drive/MyDrive/BindCraft/TGFb1/
+starting_pdb = /content/drive/MyDrive/tgfb1.pdb
+binder_name  = TGFb1
+chains       = A
+```
+
+Leave the hotspot field blank and let BindCraft choose the site.
 
 ## Designing peptide binders
 
