@@ -6,6 +6,10 @@ A patched copy of the BindCraft Colab notebook that actually runs on current
 Colab (Python 3.13, recent JAX). Works against any target; it ships configured
 for TGF-β1 as a worked example.
 
+Built on [BindCraft](https://github.com/martinpacesa/BindCraft) by Martin
+Pacesa — this repo is a personal wrapper around that work, not a replacement
+for it. See [Credit](#credit).
+
 **This repo is the only current version.** Check
 [the releases page](https://github.com/a-LittleMonk/BindCraft-GoogleColab/releases)
 for the newest number; the notebook prints its own version in the first cell, so
@@ -237,10 +241,19 @@ work. It only reads files.
 | `BindCraft_colab.ipynb` | The notebook. 15 numbered cells; 1–14 run in order, 15 is a diagnostic. |
 | `examples/tgfb1.pdb` | **Example target only, not part of the setup.** Chains A and B of 3KFD, 112 residues each, no waters or ligands. The notebook is set to use chain A. |
 
-## Licence
+## Credit
 
-The notebook, the README and the example file in this repo are MIT licensed
-(see `LICENSE`). They are a wrapper: BindCraft, ColabDesign, PyRosetta and the
-AlphaFold2 parameters are downloaded at install time and stay under their own
-licences. PyRosetta in particular is free for academic use only — check its
-terms before any commercial work.
+**The science here is not mine.** BindCraft is Martin Pacesa's
+([martinpacesa/BindCraft](https://github.com/martinpacesa/BindCraft)), built on
+ColabDesign, AlphaFold2 and PyRosetta. The design loop in cell 10 is byte-for-byte
+upstream's, and the table above shows exactly how little else differs.
+
+This repo is a personal wrapper. I made it to get BindCraft running on current
+Colab after the JAX changes broke it, and added the tuning cell and the
+diagnostics cell while debugging my own runs. Nothing is copied or forked here —
+BindCraft, ColabDesign and the AlphaFold2 parameters are downloaded from their
+original sources when you run cell 1, and stay under their own terms.
+
+Two practical notes: PyRosetta is free for academic use only, so check its terms
+before any commercial work. And if you publish anything from this, cite the
+BindCraft authors, not this repo.
