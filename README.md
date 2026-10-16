@@ -214,6 +214,22 @@ order**:
 **Re-running cell 10 on its own keeps the old target and exits again.** Cell 15
 reports the count, the target, and whether the next run will do any work.
 
+### `Cannot open file ...` when a trajectory finally succeeds
+
+A space in `design_path`, `binder_name` or `starting_pdb`. PyRosetta reads
+those paths through Rosetta's own C++ file layer, which cannot open a path
+containing a space.
+
+It is a nasty one because it stays hidden. Every Python reader in the pipeline
+handles the path fine — the clash check and the contact count both read the
+same file seconds earlier — so trajectories run normally and get rejected
+normally. The error appears only when a trajectory *succeeds* and relaxing
+starts, which can be half an hour of GPU time in. And the message names the
+file, not the reason, so it reads like the file is missing.
+
+Cell 3 now refuses to start if any of those three contains a space, and prints
+the same name with underscores.
+
 ### Every trajectory is rejected
 
 `Severe clashes detected, skipping analysis and MPNN optimisation` comes from
