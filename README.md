@@ -314,8 +314,9 @@ go down. When it does, three things compound:
    skipped the entire install block and never retried — which made a passing
    outage look permanent.
 
-PyRosetta is now installed outside that block, and **upstream's own command
-still runs first, unchanged**:
+PyRosetta is now installed outside that block, and **upstream's own source is
+still what is read first**: the `quarterly` channel on
+`west.rosettacommons.org`, exactly as upstream's command names it.
 
 ```
 pip install -q pyrosetta --find-links
@@ -325,10 +326,17 @@ pip install -q pyrosetta --find-links
 That matters more than it looks. The obvious fix is to hand the whole job to
 [`pyrosetta-installer`](https://pypi.org/project/pyrosetta-installer/),
 RosettaCommons' own tool, which knows both official mirrors — but it reads the
-server's `release` directory while upstream's line pins the `quarterly` one.
-Using it unconditionally would quietly change which PyRosetta build you get on
-a perfectly normal day. So it is only reached when upstream's line comes back
-empty, and then it is pointed at `graylab.jhu.edu` (Johns Hopkins).
+server's `release` directory while upstream pins the `quarterly` one. Using it
+unconditionally would quietly change which PyRosetta build you get on a
+perfectly normal day. So it is only reached when the official source cannot
+deliver, and then it is pointed at `graylab.jhu.edu` (Johns Hopkins).
+
+The wheel is picked off upstream's own page rather than left to pip, purely so
+there is a progress bar. Choosing it correctly needs care: the versions there
+look like `2026.29` and `2026.3`, and sorted as text the older one wins, so
+they are compared as numbers. If anything about that goes wrong — the page
+changes shape, no wheel matches this Python — **upstream's own pip command runs
+instead**, exactly as before, just without the bar.
 
 A short TCP probe runs first, because when the UW host is unreachable pip
 spends about four minutes retrying before giving up. If it does not answer, the
@@ -386,8 +394,8 @@ several minutes and upstream reported none of it. Once the params are ready but
 ColabDesign is still building, the line says so plainly rather than showing a
 finished bar with a rate decaying towards zero.
 
-For PyRosetta, **the wheel is downloaded by the cell rather than by pip**, with
-the same bar:
+For PyRosetta, **the wheel is downloaded by the cell rather than by pip** —
+on both routes, the official server and the fallback — with the same bar:
 
 ```
   [===================                     ]  48.3%    807/1594 MB   1.3 MB/s  ETA 10.1 min
