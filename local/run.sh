@@ -116,13 +116,29 @@ echo "output   : $DESIGN_PATH"
 echo "log      : $LOG"
 echo
 
-CONDA_BASE="$(conda info --base)"
 # Activate by prefix, not by name: some images point envs_dirs away from
 # $CONDA_BASE/envs, so a name lookup finds nothing. install.sh records the path.
+#
+# None of this may assume conda is on PATH: launched from a Jupyter kernel, or
+# any non-login shell, it is not, and `conda info --base` exits 127.
 ENV_PREFIX="$(cat "$BC_DIR/.env_prefix" 2>/dev/null || true)"
-[ -n "$ENV_PREFIX" ] || ENV_PREFIX="$CONDA_BASE/envs/BindCraft"
-[ -d "$ENV_PREFIX" ] || { echo "No BindCraft env at $ENV_PREFIX. Re-run install.sh"; exit 1; }
-ACTIVATE=". '$CONDA_BASE/etc/profile.d/conda.sh' && conda activate '$ENV_PREFIX'"
+if [ -z "$ENV_PREFIX" ]; then
+  if command -v conda >/dev/null 2>&1; then
+    ENV_PREFIX="$(conda info --base)/envs/BindCraft"
+  else
+    for c in /opt/conda /opt/miniforge3 "$HOME/miniforge3" "$HOME/miniconda3"; do
+      [ -d "$c/envs/BindCraft" ] && ENV_PREFIX="$c/envs/BindCraft" && break
+    done
+  fi
+fi
+[ -n "$ENV_PREFIX" ] && [ -d "$ENV_PREFIX" ] || {
+  echo "No BindCraft env found. Re-run install.sh"; exit 1; }
+
+# envs/BindCraft -> the conda install that owns it
+CONDA_SH="$(dirname "$(dirname "$ENV_PREFIX")")/etc/profile.d/conda.sh"
+[ -f "$CONDA_SH" ] || {
+  echo "No conda.sh at $CONDA_SH. Re-run install.sh"; exit 1; }
+ACTIVATE=". '$CONDA_SH' && conda activate '$ENV_PREFIX'"
 
 if [ "$FOREGROUND" = 1 ]; then
   bash -lc "$ACTIVATE && $CMD"

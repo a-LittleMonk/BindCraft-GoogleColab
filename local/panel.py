@@ -419,13 +419,12 @@ def _advanced_json():
     if t["preset"].value == "Production defaults":
         return base, None, None
 
-    a = json.load(open(base))
     if t["preset"].value == "Fast debug":
-        a.update(_FAST)
-        out = BC_ROOT / "advanced_notebook.json"
-        out.write_text(json.dumps(a, indent=4) + "\n")
-        return out, 0.10, 100
+        # run.sh --smoke builds its own advanced file and sets both gates, so
+        # passing anything here would only be overridden.
+        return None, None, None
 
+    a = json.load(open(base))
     a.update({desc: int(t[key].value) for key, desc, _ in _FIELDS
               if desc != "max_trajectories"})
     a["max_trajectories"] = int(t["maxtraj"].value) or False
@@ -462,14 +461,15 @@ def _build_run():
                 return
             print(save_settings(), "\n")
             adv, gate, clash = _advanced_json()
-            cmd = ["bash", str(HERE / "run.sh"), "-s", STATE["settings"],
-                   "-f", STATE["filters"], "-a", str(adv)]
+            cmd = ["bash", str(HERE / "run.sh"), "-s", STATE["settings"]]
             if _W["tuning"]["preset"].value == "Fast debug":
                 cmd.append("--smoke")
-            if gate is not None:
-                cmd += ["--plddt", f"{gate:.2f}"]
-            if clash is not None:
-                cmd += ["--clashes", str(clash)]
+            else:
+                cmd += ["-f", STATE["filters"], "-a", str(adv)]
+                if gate is not None:
+                    cmd += ["--plddt", f"{gate:.2f}"]
+                if clash is not None:
+                    cmd += ["--clashes", str(clash)]
             print(" ".join(cmd), "\n")
             r = subprocess.run(cmd, capture_output=True, text=True)
             print(r.stdout, r.stderr, sep="")
