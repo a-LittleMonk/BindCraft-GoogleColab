@@ -4,6 +4,7 @@
 #   bash run.sh --smoke                     # ~10 min pipeline check, designs are meaningless
 #   bash run.sh                             # real campaign, detached in tmux
 #   bash run.sh -s settings/mytarget.json
+#   bash run.sh --plddt 0.5                 # loosen the trajectory quality gate
 #   bash run.sh --fg                        # run in the foreground instead of tmux
 #
 # Detached runs: reattach with `tmux attach -t bindcraft`, detach with ctrl-b d.
@@ -18,12 +19,14 @@ FILTERS="$BC_DIR/settings_filters/peptide_filters.json"
 ADVANCED="$BC_DIR/settings_advanced/peptide_3stage_multimer_mpnn.json"
 SMOKE=0
 FOREGROUND=0
+PLDDT=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     -s|--settings) SETTINGS="$2"; shift 2 ;;
     -f|--filters)  FILTERS="$2";  shift 2 ;;
     -a|--advanced) ADVANCED="$2"; shift 2 ;;
+    --plddt)       PLDDT="$2"; shift 2 ;;
     --smoke)       SMOKE=1; shift ;;
     --fg)          FOREGROUND=1; shift ;;
     -h|--help)     sed -n '2,10p' "$0"; exit 0 ;;
@@ -66,14 +69,21 @@ a.update(soft_iterations=8, temporary_iterations=5, hard_iterations=2,
          save_design_animations=False, save_design_trajectory_plots=False)
 json.dump(a, open(sys.argv[2], "w"), indent=4)
 PY
-  # The trajectory pLDDT gate is hardcoded in upstream, not exposed in the JSON.
-  sed -i 's/plddt > 0\.65/plddt > 0.1/g' "$GATE_FILE"
+  PLDDT="${PLDDT:-0.1}"
   python3 - "$RENDERED" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
 s["number_of_final_designs"] = 1
 json.dump(s, open(sys.argv[1], "w"), indent=4)
 PY
+fi
+
+# The trajectory pLDDT gate is hardcoded in upstream, not exposed in the JSON,
+# so it is patched in rather than passed. The restore above is what keeps this
+# from compounding across runs.
+if [ -n "$PLDDT" ]; then
+  echo ">>> Trajectory pLDDT gate set to $PLDDT (stock is 0.65)."
+  sed -i "s/plddt > 0\.65/plddt > $PLDDT/g" "$GATE_FILE"
 fi
 
 LOG="$DESIGN_PATH/run_$(date +%Y%m%d_%H%M%S).log"

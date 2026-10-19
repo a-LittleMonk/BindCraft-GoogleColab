@@ -11,6 +11,7 @@ version upstream actually wants.
 | `install.sh` | Installs conda, upstream BindCraft, its env, and the AF2 weights. Idempotent. |
 | `run.sh` | Launches a campaign in `tmux` so it survives your SSH session dropping. |
 | `fetch_results.sh` | Run on **your** machine to rsync results back down. |
+| `BindCraft_local.ipynb` | Optional form-field control panel, for Jupyter. |
 | `settings/tgfb1.json` | Target settings for the TGF-β1 example. Copy it for a new target. |
 
 ## Quick start
@@ -35,6 +36,21 @@ smoke run are meaningless** — it only tells you the install is good. `run.sh`
 restores the stock gate from a pristine backup on every launch, so the patch
 never compounds.
 
+## The form-field panel
+
+If you'd rather not edit JSON by hand, open `BindCraft_local.ipynb` in the
+instance's Jupyter. It gives you the same kind of fields as the Colab notebook's
+cells 3 and 9 — text boxes, a length slider, dropdowns for the filter and
+protocol presets, and the pLDDT gate.
+
+It writes the settings file and then calls `run.sh`, so the campaign still runs
+in `tmux` and **closing the browser does not stop it** — the one thing the Colab
+notebook cannot do. Cell 2 shows progress, cell 3 shows the ranked table and the
+top design in 3D. Run cell 1 first; cells 2 and 3 read the campaign it selected.
+
+The panel and `run.sh` share the same files in `settings/`, so there is one
+source of truth either way.
+
 ## Your own target
 
 Copy `settings/tgfb1.json` and edit it:
@@ -51,6 +67,10 @@ Copy `settings/tgfb1.json` and edit it:
   CSVs it finds there, so leftovers from an old run get ranked alongside new ones.
 
 Then `bash run.sh -s settings/yourtarget.json`.
+
+`--plddt 0.5` loosens the trajectory quality gate, which upstream hardcodes at
+0.65. Use it if everything is being rejected; `run.sh` restores the stock value
+from a pristine backup on every launch.
 
 Defaults are the peptide presets (`peptide_filters.json`,
 `peptide_3stage_multimer_mpnn.json`). Override with `-f` and `-a` for other
