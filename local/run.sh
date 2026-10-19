@@ -5,6 +5,7 @@
 #   bash run.sh                             # real campaign, detached in tmux
 #   bash run.sh -s settings/mytarget.json
 #   bash run.sh --plddt 0.5 --clashes 10    # loosen the quality / clash gates
+#   bash run.sh --force                     # rerank a folder already at its target
 #   bash run.sh --fg                        # run in the foreground instead of tmux
 #
 # Detached runs: reattach with `tmux attach -t bindcraft`, detach with ctrl-b d.
@@ -21,6 +22,7 @@ SMOKE=0
 FOREGROUND=0
 PLDDT=""
 CLASHES=""
+FORCE=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -30,6 +32,7 @@ while [ $# -gt 0 ]; do
     --plddt)       PLDDT="$2"; shift 2 ;;
     --clashes)     CLASHES="$2"; shift 2 ;;
     --smoke)       SMOKE=1; shift ;;
+    --force)       FORCE=1; shift ;;
     --fg)          FOREGROUND=1; shift ;;
     -h|--help)     sed -n '2,10p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -43,8 +46,23 @@ done
 RENDERED="$BC_ROOT/run_settings.json"
 sed -e "s|{{REPO}}|$REPO|g" -e "s|{{BC_ROOT}}|$BC_ROOT|g" "$SETTINGS" > "$RENDERED"
 
+if [ "$SMOKE" = 1 ]; then
+  # A smoke run gets its own folder. Sharing one with a real campaign means its
+  # meaningless design is ranked alongside the real ones, and - because smoke
+  # asks for a single design - a second smoke run in that folder finds the
+  # target already met and exits without designing anything.
+  python3 - "$RENDERED" <<'PY'
+import json, sys
+s = json.load(open(sys.argv[1]))
+s["design_path"] = s["design_path"].rstrip("/") + "/smoke/"
+s["number_of_final_designs"] = 1
+json.dump(s, open(sys.argv[1], "w"), indent=4)
+PY
+fi
+
 STARTING_PDB=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['starting_pdb'])" "$RENDERED")
 DESIGN_PATH=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['design_path'])" "$RENDERED")
+WANT=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['number_of_final_designs'])" "$RENDERED")
 # BindCraft only re-reads starting_pdb at the END of a trajectory, so a bad path
 # costs a full trajectory before it errors. Check it up front instead.
 [ -f "$STARTING_PDB" ] || { echo "starting_pdb does not exist: $STARTING_PDB"; exit 1; }
@@ -53,6 +71,30 @@ for p in "$STARTING_PDB" "$DESIGN_PATH" "$BC_DIR"; do
   case "$p" in *" "*) echo "Path contains a space, which PyRosetta cannot open: $p"; exit 1 ;; esac
 done
 mkdir -p "$DESIGN_PATH"
+
+# BindCraft counts the .pdb files in Accepted/ before it samples anything, and
+# breaks out if that count has reached number_of_final_designs - printing
+# "Target number N of designs reached!" with the count it found, which reads as
+# if N were your target. The run then ends in about a second having designed
+# nothing. Say so here instead.
+# Guard the directory test separately: under `pipefail` a find that fails
+# because Accepted/ does not exist yet takes down the whole script, silently.
+HAVE=0
+if [ -d "$DESIGN_PATH/Accepted" ]; then
+  HAVE=$(find "$DESIGN_PATH/Accepted" -maxdepth 1 -name '*.pdb' | wc -l)
+fi
+if [ "$HAVE" -ge "$WANT" ] && [ "$FORCE" = 0 ]; then
+  echo "This run would design nothing."
+  echo
+  echo "  accepted designs already in that folder : $HAVE"
+  echo "  number_of_final_designs                 : $WANT"
+  echo "  folder                                  : $DESIGN_PATH"
+  echo
+  echo "BindCraft reranks what is there and exits. Either raise"
+  echo "number_of_final_designs above $HAVE, or point design_path at a new"
+  echo "folder for a fresh campaign. Pass --force to rerank anyway."
+  exit 1
+fi
 
 # Restore the pristine quality gate, then lower it only for smoke runs.
 GATE_FILE="$BC_DIR/functions/colabdesign_utils.py"
@@ -73,12 +115,6 @@ json.dump(a, open(sys.argv[2], "w"), indent=4)
 PY
   PLDDT="${PLDDT:-0.1}"
   CLASHES="${CLASHES:-100}"
-  python3 - "$RENDERED" <<'PY'
-import json, sys
-s = json.load(open(sys.argv[1]))
-s["number_of_final_designs"] = 1
-json.dump(s, open(sys.argv[1], "w"), indent=4)
-PY
 fi
 
 # Upstream hardcodes these gates rather than exposing them in the JSON, so they
