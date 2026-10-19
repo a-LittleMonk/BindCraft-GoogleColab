@@ -11,16 +11,30 @@ BC_ROOT="${BC_ROOT:-/workspace}"
 BC_DIR="$BC_ROOT/bindcraft"
 MARKER="$BC_DIR/.install_complete"
 
-if [ -f "$MARKER" ]; then
-  echo "BindCraft already installed at $BC_DIR (remove $MARKER to force)."
-  exit 0
-fi
+DONE=0
+[ -f "$MARKER" ] && DONE=1
 
-echo "=== 0/5 system packages ==="
-if command -v apt-get >/dev/null 2>&1; then
-  export DEBIAN_FRONTEND=noninteractive
-  apt-get update -qq
-  apt-get install -y -qq git wget curl tmux rsync bzip2 ca-certificates
+# Registering the Jupyter kernel lives outside the env, so a new instance or a
+# rebuilt image loses it even when the env itself is intact. It is cheap and
+# idempotent, so it runs on every invocation, including the already-installed
+# path below.
+register_kernel() {
+  if python -m ipykernel install --name bindcraft \
+       --display-name "Python (BindCraft)" >/dev/null 2>&1; then
+    echo "Registered Jupyter kernel 'Python (BindCraft)'"
+  else
+    echo "Warning: could not register the Jupyter kernel; the notebook will"
+    echo "         need its kernel set by hand."
+  fi
+}
+
+if [ "$DONE" = 0 ]; then
+  echo "=== 0/5 system packages ==="
+  if command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -qq
+    apt-get install -y -qq git wget curl tmux rsync bzip2 ca-certificates
+  fi
 fi
 
 echo "=== 1/5 conda ==="
@@ -51,6 +65,15 @@ ENV_PREFIX="$CONDA_BASE/envs/BindCraft"
 export CONDA_ENVS_DIRS="$CONDA_BASE/envs"
 unset CONDA_ENVS_PATH
 mkdir -p "$CONDA_BASE/envs"
+
+if [ "$DONE" = 1 ]; then
+  echo "BindCraft already installed at $BC_DIR (remove $MARKER to force)."
+  set +u
+  conda activate "$ENV_PREFIX"
+  set -u
+  register_kernel
+  exit 0
+fi
 
 # Drop any half-built BindCraft env from an earlier attempt, wherever it landed.
 while read -r stale; do
@@ -113,16 +136,7 @@ print("colabdesign + pyrosetta import OK")
 PY
 [ -f "$BC_DIR/params/params_model_5_ptm.npz" ] || { echo "Error: AF2 weights missing"; exit 1; }
 
-# Register this env as a Jupyter kernel. Jupyter on these images runs in its own
-# environment, so without this the notebook panel starts in a Python that has no
-# pandas and no BindCraft.
-if python -m ipykernel install --name bindcraft \
-     --display-name "Python (BindCraft)" >/dev/null 2>&1; then
-  echo "Registered Jupyter kernel 'Python (BindCraft)'"
-else
-  echo "Warning: could not register the Jupyter kernel; the notebook panel will"
-  echo "         need its kernel set by hand."
-fi
+register_kernel
 
 # Keep a pristine copy so the smoke-test patch in run.sh never compounds.
 cp -n "$BC_DIR/functions/colabdesign_utils.py" "$BC_DIR/functions/colabdesign_utils.py.orig"
