@@ -113,6 +113,17 @@ print("colabdesign + pyrosetta import OK")
 PY
 [ -f "$BC_DIR/params/params_model_5_ptm.npz" ] || { echo "Error: AF2 weights missing"; exit 1; }
 
+# Register this env as a Jupyter kernel. Jupyter on these images runs in its own
+# environment, so without this the notebook panel starts in a Python that has no
+# pandas and no BindCraft.
+if python -m ipykernel install --name bindcraft \
+     --display-name "Python (BindCraft)" >/dev/null 2>&1; then
+  echo "Registered Jupyter kernel 'Python (BindCraft)'"
+else
+  echo "Warning: could not register the Jupyter kernel; the notebook panel will"
+  echo "         need its kernel set by hand."
+fi
+
 # Keep a pristine copy so the smoke-test patch in run.sh never compounds.
 cp -n "$BC_DIR/functions/colabdesign_utils.py" "$BC_DIR/functions/colabdesign_utils.py.orig"
 

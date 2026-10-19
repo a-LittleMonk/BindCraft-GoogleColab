@@ -36,20 +36,31 @@ smoke run are meaningless** — it only tells you the install is good. `run.sh`
 restores the stock gate from a pristine backup on every launch, so the patch
 never compounds.
 
-## The form-field panel
+## The notebook
 
-If you'd rather not edit JSON by hand, open `BindCraft_local.ipynb` in the
-instance's Jupyter. It gives you the same kind of fields as the Colab notebook's
-cells 3 and 9 — text boxes, a length slider, dropdowns for the filter and
-protocol presets, and the pLDDT gate.
+`BindCraft_local.ipynb` mirrors the Colab notebook's cells, with the same form
+fields, the same dropdown wording and the same numbering, for the instance's
+Jupyter. Open it and **set the kernel to "Python (BindCraft)"** — Jupyter on
+these images runs in its own Python, which has no pandas and no BindCraft.
+`install.sh` registers that kernel; cell 1 tells you if you're in the wrong one.
 
-It writes the settings file and then calls `run.sh`, so the campaign still runs
-in `tmux` and **closing the browser does not stop it** — the one thing the Colab
-notebook cannot do. Cell 2 shows progress, cell 3 shows the ranked table and the
-top design in 3D. Run cell 1 first; cells 2 and 3 read the campaign it selected.
+| Colab | Here |
+|---|---|
+| 1 Installation, 2 Mount Drive | `install.sh`, once. Cell 1 only verifies. |
+| 3 Binder design settings | 2, same fields |
+| 4 Advanced settings | 3, same four protocol dropdowns |
+| 5 Filters | 4, same five options |
+| 6 Import, 7 PyRosetta, 8 Compat patches | gone — nothing to shim locally |
+| 9 Tuning controls | 5, same fields including both gates |
+| 10 Run BindCraft | 6, but launches `tmux` instead of running in-kernel |
+| 11 Consolidate & rank | done by `bindcraft.py` itself |
+| 12 Top 20, 13 Top design, 14 Animation | 8, 9, 10 |
+| 15 Diagnose rejected trajectories | 11 |
 
-The panel and `run.sh` share the same files in `settings/`, so there is one
-source of truth either way.
+The run goes to `run.sh`, so **closing the browser does not stop it** — the one
+thing the Colab notebook cannot do. Cell 6 also has a Stop button. The notebook
+and `run.sh` read and write the same files in `settings/`, so there is one source
+of truth either way.
 
 ## Your own target
 
