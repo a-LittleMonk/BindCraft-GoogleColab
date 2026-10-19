@@ -47,8 +47,9 @@ echo "conda at $CONDA_BASE"
 # point envs_dirs somewhere else entirely, so the env lands outside that path
 # and the activation fails. Force envs_dirs back for the duration of the install.
 ENV_PREFIX="$CONDA_BASE/envs/BindCraft"
+# Only CONDA_ENVS_DIRS: mamba aborts if the legacy CONDA_ENVS_PATH is set too.
 export CONDA_ENVS_DIRS="$CONDA_BASE/envs"
-export CONDA_ENVS_PATH="$CONDA_BASE/envs"
+unset CONDA_ENVS_PATH
 mkdir -p "$CONDA_BASE/envs"
 
 # Drop any half-built BindCraft env from an earlier attempt, wherever it landed.
