@@ -82,17 +82,27 @@ else
   git clone https://github.com/martinpacesa/BindCraft "$BC_DIR"
 fi
 
-echo "=== 4/5 environment + AF2 weights (slow: 15-40 min) ==="
 cd "$BC_DIR"
-chmod +x install_bindcraft.sh
-if [ -n "$CUDA" ]; then
-  ./install_bindcraft.sh --pkg_manager "$PKG_MANAGER" --cuda "$CUDA"
+if [ -d "$ENV_PREFIX" ] && [ -f "$BC_DIR/params/params_model_5_ptm.npz" ]; then
+  # Upstream's installer aborts if the env already exists, so skip it when a
+  # previous run got this far and only the verification below failed.
+  echo "=== 4/5 environment + AF2 weights already present, skipping ==="
 else
-  ./install_bindcraft.sh --pkg_manager "$PKG_MANAGER"
+  echo "=== 4/5 environment + AF2 weights (slow: 15-40 min) ==="
+  chmod +x install_bindcraft.sh
+  if [ -n "$CUDA" ]; then
+    ./install_bindcraft.sh --pkg_manager "$PKG_MANAGER" --cuda "$CUDA"
+  else
+    ./install_bindcraft.sh --pkg_manager "$PKG_MANAGER"
+  fi
 fi
 
 echo "=== 5/5 verifying ==="
+# Activation scripts (cuda-nvcc's, for one) read variables they never set, so
+# they fail under `set -u`. Drop it for the activate only.
+set +u
 conda activate "$ENV_PREFIX"
+set -u
 # Record the prefix so run.sh activates by path and never depends on envs_dirs.
 echo "$ENV_PREFIX" > "$BC_DIR/.env_prefix"
 python - <<'PY'
