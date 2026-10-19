@@ -19,6 +19,9 @@ Colab opens a GitHub notebook **read-only**. Use *File > Save a copy in Drive*
 to get a runnable one. That copy is a snapshot — it keeps the form values you
 type into it, and it never picks up later fixes. Come back here for those.
 
+**Not using Colab?** [`local/`](local/README.md) runs the same pipeline over SSH
+on any Linux box with an NVIDIA GPU — your own machine or a rented one.
+
 ## How to use it
 
 1. Put your target PDB on Google Drive.

@@ -1,0 +1,9 @@
+{
+    "design_path": "{{BC_ROOT}}/designs/tgfb1/",
+    "binder_name": "tgfb1",
+    "starting_pdb": "{{REPO}}/examples/tgfb1.pdb",
+    "chains": "A",
+    "target_hotspot_residues": "A31,A34,A91,A94",
+    "lengths": [25, 40],
+    "number_of_final_designs": 10
+}
