@@ -11,7 +11,8 @@ version upstream actually wants.
 | `install.sh` | Installs conda, upstream BindCraft, its env, and the AF2 weights. Idempotent. |
 | `run.sh` | Launches a campaign in `tmux` so it survives your SSH session dropping. |
 | `fetch_results.sh` | Run on **your** machine to rsync results back down. |
-| `BindCraft_local.ipynb` | Optional form-field control panel, for Jupyter. |
+| `BindCraft_local.ipynb` | Optional form-field notebook, mirroring the Colab cells. |
+| `panel.py` | The code behind those forms, so the cells stay two lines. |
 | `settings/tgfb1.json` | Target settings for the TGF-β1 example. Copy it for a new target. |
 
 ## Quick start
@@ -61,6 +62,16 @@ The run goes to `run.sh`, so **closing the browser does not stop it** — the on
 thing the Colab notebook cannot do. Cell 6 also has a Stop button. The notebook
 and `run.sh` read and write the same files in `settings/`, so there is one source
 of truth either way.
+
+Each cell is two lines, because the code lives in `panel.py`. Colab keeps a
+form's values in the cell source; here they live in `panel.py`'s widget cache,
+which means **re-running a cell keeps what you typed** instead of reloading it
+from disk. Values reach disk when you press Save settings, or when cell 6 saves
+them for you before launching.
+
+A `git pull` on the box will complain that the notebook has local changes —
+Jupyter rewrites it with execution counts the moment you open it. Discard that
+copy with `git checkout -- local/BindCraft_local.ipynb` and pull again.
 
 ## Your own target
 
