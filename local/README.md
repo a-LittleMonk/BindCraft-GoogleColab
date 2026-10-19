@@ -15,27 +15,75 @@ version upstream actually wants.
 | `panel.py` | The code behind those forms, so the cells stay two lines. |
 | `settings/tgfb1.json` | Target settings for the TGF-β1 example. Copy it for a new target. |
 
-## Quick start
+## Installation
+
+SSH into the box, then run exactly this:
 
 ```bash
-# on the GPU box
+cd /workspace
 git clone https://github.com/a-LittleMonk/BindCraft-GoogleColab
-cd BindCraft-GoogleColab/local
-bash install.sh            # 15-40 min, mostly the 5 GB of AF2 weights
-bash run.sh --smoke        # ~10 min, proves the pipeline works end to end
-bash run.sh                # the real campaign
+bash BindCraft-GoogleColab/local/install.sh
 ```
+
+`/workspace` matters: the scripts default to `BC_ROOT=/workspace` and install
+BindCraft to `/workspace/bindcraft`. Put the repo elsewhere and you have to pass
+`BC_ROOT` on every command.
+
+Takes 15–40 minutes, mostly the 5 GB of AlphaFold weights. It finishes with:
+
+```
+jax 0.6.0 devices: [CudaDevice(id=0)]
+colabdesign + pyrosetta import OK
+Registered Jupyter kernel 'Python (BindCraft)'
+Done. BindCraft is at /workspace/bindcraft, env at /opt/miniforge3/envs/BindCraft
+```
+
+Check that line says `CudaDevice`, not `CpuDevice`. Re-running `install.sh` is
+safe — it skips whatever is already done.
+
+## Running it: terminal
 
 ```bash
-# later, from your own machine
-bash fetch_results.sh root@ssh5.vast.ai:12345 ./results
+cd /workspace/BindCraft-GoogleColab
+bash local/run.sh --smoke    # ~10 min, proves the pipeline works end to end
+bash local/run.sh            # the real campaign
+tmux attach -t bindcraft     # watch it; ctrl-b then d to leave it running
+tmux kill-session -t bindcraft   # stop it
 ```
 
-`--smoke` cuts the iteration counts, drops the trajectory quality gate to 0.1
-and turns the filters off, so one design gets through fast. **Designs from a
-smoke run are meaningless** — it only tells you the install is good. `run.sh`
-restores the stock gate from a pristine backup on every launch, so the patch
-never compounds.
+## Running it: Jupyter
+
+1. Open Jupyter from the instance card (on vast.ai, the "Open" button).
+2. Open `BindCraft-GoogleColab/local/BindCraft_local.ipynb`.
+3. **Set the kernel to "Python (BindCraft)"** — *Kernel > Change kernel*. The
+   default kernel is the image's own Python, which has no pandas and no
+   BindCraft. If the kernel is not in the list, reload the page.
+4. Run cell 1. It should print all OK and your GPU.
+5. Run cells 2–5, editing the fields you need, then press **Run BindCraft** in
+   cell 6. Cell 7 shows progress; 8–11 show results.
+
+Both routes do the same thing — the notebook writes the settings file and calls
+`run.sh`, so either way the run ends up in the same `tmux` session.
+
+## Getting results back
+
+From **your own machine**, not the instance:
+
+```bash
+bash local/fetch_results.sh root@ssh5.vast.ai:12345 ./results
+```
+
+The host and port are on the instance card under "Direct ssh connect". Do this
+before destroying an instance — destroying deletes everything on it.
+
+## About `--smoke`
+
+It cuts the iteration counts, drops both pLDDT gates to 0.1, lifts the clash
+limit and turns the filters off, so one design gets through in minutes.
+**Designs from a smoke run are meaningless** — it only tells you the install is
+good. They go to a `smoke/` subfolder so they never get ranked with real ones,
+and `run.sh` restores the stock gates from a pristine backup on every launch, so
+the patches never compound.
 
 ## The notebook
 
