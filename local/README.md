@@ -68,9 +68,24 @@ Copy `settings/tgfb1.json` and edit it:
 
 Then `bash run.sh -s settings/yourtarget.json`.
 
-`--plddt 0.5` loosens the trajectory quality gate, which upstream hardcodes at
-0.65. Use it if everything is being rejected; `run.sh` restores the stock value
-from a pristine backup on every launch.
+## When everything is rejected
+
+Upstream hardcodes three gates that a trajectory has to clear, and the log tells
+you which one stopped it:
+
+| Log line | Gate | Flag |
+|---|---|---|
+| `Trajectory starting confidence low` | final pLDDT below 0.70 | `--plddt 0.5` |
+| `Severe clashes detected` | any CA clash at all | `--clashes 10` |
+| `... pLDDT too low to continue` | per-stage check, 0.65 | `--plddt 0.5` |
+
+`--plddt` moves the first and third together, since they measure the same thing.
+`run.sh` restores the stock values from a pristine backup on every launch, so the
+patches never compound.
+
+Loosening a gate does not make a design good — it just lets a doomed trajectory
+spend time in MPNN optimisation. Use these to prove the pipeline works, or when
+a target genuinely cannot reach 0.70, not to rescue a campaign.
 
 Defaults are the peptide presets (`peptide_filters.json`,
 `peptide_3stage_multimer_mpnn.json`). Override with `-f` and `-a` for other

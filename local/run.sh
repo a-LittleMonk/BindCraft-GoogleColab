@@ -4,7 +4,7 @@
 #   bash run.sh --smoke                     # ~10 min pipeline check, designs are meaningless
 #   bash run.sh                             # real campaign, detached in tmux
 #   bash run.sh -s settings/mytarget.json
-#   bash run.sh --plddt 0.5                 # loosen the trajectory quality gate
+#   bash run.sh --plddt 0.5 --clashes 10    # loosen the quality / clash gates
 #   bash run.sh --fg                        # run in the foreground instead of tmux
 #
 # Detached runs: reattach with `tmux attach -t bindcraft`, detach with ctrl-b d.
@@ -20,6 +20,7 @@ ADVANCED="$BC_DIR/settings_advanced/peptide_3stage_multimer_mpnn.json"
 SMOKE=0
 FOREGROUND=0
 PLDDT=""
+CLASHES=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -27,6 +28,7 @@ while [ $# -gt 0 ]; do
     -f|--filters)  FILTERS="$2";  shift 2 ;;
     -a|--advanced) ADVANCED="$2"; shift 2 ;;
     --plddt)       PLDDT="$2"; shift 2 ;;
+    --clashes)     CLASHES="$2"; shift 2 ;;
     --smoke)       SMOKE=1; shift ;;
     --fg)          FOREGROUND=1; shift ;;
     -h|--help)     sed -n '2,10p' "$0"; exit 0 ;;
@@ -70,6 +72,7 @@ a.update(soft_iterations=8, temporary_iterations=5, hard_iterations=2,
 json.dump(a, open(sys.argv[2], "w"), indent=4)
 PY
   PLDDT="${PLDDT:-0.1}"
+  CLASHES="${CLASHES:-100}"
   python3 - "$RENDERED" <<'PY'
 import json, sys
 s = json.load(open(sys.argv[1]))
@@ -78,12 +81,28 @@ json.dump(s, open(sys.argv[1], "w"), indent=4)
 PY
 fi
 
-# The trajectory pLDDT gate is hardcoded in upstream, not exposed in the JSON,
-# so it is patched in rather than passed. The restore above is what keeps this
-# from compounding across runs.
+# Upstream hardcodes these gates rather than exposing them in the JSON, so they
+# are patched in. The restore above is what keeps it from compounding.
+#
+# There are three separate checks, and lowering only some of them does nothing:
+#   - the per-stage continuation checks  (*_plddt > 0.65)
+#   - the FINAL check that decides whether a trajectory is optimised at all
+#     (final_plddt < 0.7) - this is the one that reports
+#     "Trajectory starting confidence low"
+#   - the CA-clash check (ca_clashes > 0), which rejects outright and reports
+#     "Severe clashes detected"
 if [ -n "$PLDDT" ]; then
-  echo ">>> Trajectory pLDDT gate set to $PLDDT (stock is 0.65)."
-  sed -i "s/plddt > 0\.65/plddt > $PLDDT/g" "$GATE_FILE"
+  echo ">>> pLDDT gates set to $PLDDT (stock is 0.65 per stage, 0.70 final)."
+  sed -i -e "s/plddt > 0\.65/plddt > $PLDDT/g" \
+         -e "s/final_plddt < 0\.7/final_plddt < $PLDDT/g" "$GATE_FILE"
+  grep -q "final_plddt < $PLDDT" "$GATE_FILE" || {
+    echo "Error: could not patch the final pLDDT gate. Upstream may have changed."; exit 1; }
+fi
+if [ -n "$CLASHES" ]; then
+  echo ">>> CA-clash limit set to $CLASHES (stock is 0)."
+  sed -i "s/if ca_clashes > 0:/if ca_clashes > $CLASHES:/" "$GATE_FILE"
+  grep -q "if ca_clashes > $CLASHES:" "$GATE_FILE" || {
+    echo "Error: could not patch the clash gate. Upstream may have changed."; exit 1; }
 fi
 
 LOG="$DESIGN_PATH/run_$(date +%Y%m%d_%H%M%S).log"
