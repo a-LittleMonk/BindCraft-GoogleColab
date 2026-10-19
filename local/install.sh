@@ -42,6 +42,21 @@ CONDA_BASE="$(conda info --base)"
 . "$CONDA_BASE/etc/profile.d/conda.sh"
 echo "conda at $CONDA_BASE"
 
+# Upstream's installer creates the env with --name but then activates the
+# hardcoded path $CONDA_BASE/envs/BindCraft. Some images (vast.ai's, for one)
+# point envs_dirs somewhere else entirely, so the env lands outside that path
+# and the activation fails. Force envs_dirs back for the duration of the install.
+ENV_PREFIX="$CONDA_BASE/envs/BindCraft"
+export CONDA_ENVS_DIRS="$CONDA_BASE/envs"
+export CONDA_ENVS_PATH="$CONDA_BASE/envs"
+mkdir -p "$CONDA_BASE/envs"
+
+# Drop any half-built BindCraft env from an earlier attempt, wherever it landed.
+while read -r stale; do
+  [ -n "$stale" ] && [ "$stale" != "$ENV_PREFIX" ] && [ -d "$stale" ] && {
+    echo "Removing stale env at $stale"; rm -rf "$stale"; }
+done < <(conda env list 2>/dev/null | awk '{print $NF}' | grep -E '/BindCraft$' || true)
+
 # Upstream's installer wants mamba or conda; mamba is much faster when present.
 PKG_MANAGER=conda
 command -v mamba >/dev/null 2>&1 && PKG_MANAGER=mamba
@@ -76,7 +91,9 @@ else
 fi
 
 echo "=== 5/5 verifying ==="
-conda activate BindCraft
+conda activate "$ENV_PREFIX"
+# Record the prefix so run.sh activates by path and never depends on envs_dirs.
+echo "$ENV_PREFIX" > "$BC_DIR/.env_prefix"
 python - <<'PY'
 import jax
 print("jax", jax.__version__, "devices:", jax.devices())
@@ -90,5 +107,5 @@ cp -n "$BC_DIR/functions/colabdesign_utils.py" "$BC_DIR/functions/colabdesign_ut
 
 touch "$MARKER"
 echo
-echo "Done. BindCraft is at $BC_DIR"
+echo "Done. BindCraft is at $BC_DIR, env at $ENV_PREFIX"
 echo "Next:  bash run.sh --smoke"

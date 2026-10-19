@@ -88,7 +88,12 @@ echo "log      : $LOG"
 echo
 
 CONDA_BASE="$(conda info --base)"
-ACTIVATE=". '$CONDA_BASE/etc/profile.d/conda.sh' && conda activate BindCraft"
+# Activate by prefix, not by name: some images point envs_dirs away from
+# $CONDA_BASE/envs, so a name lookup finds nothing. install.sh records the path.
+ENV_PREFIX="$(cat "$BC_DIR/.env_prefix" 2>/dev/null || true)"
+[ -n "$ENV_PREFIX" ] || ENV_PREFIX="$CONDA_BASE/envs/BindCraft"
+[ -d "$ENV_PREFIX" ] || { echo "No BindCraft env at $ENV_PREFIX. Re-run install.sh"; exit 1; }
+ACTIVATE=". '$CONDA_BASE/etc/profile.d/conda.sh' && conda activate '$ENV_PREFIX'"
 
 if [ "$FOREGROUND" = 1 ]; then
   bash -lc "$ACTIVATE && $CMD"
