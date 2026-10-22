@@ -192,6 +192,58 @@ Below about 8 residues BindCraft also omits cysteine (`omit_AAs: "C"`), so
 disulfide-stapled macrocycles are out of scope here — RFpeptides is the tool for
 those.
 
+## Reproducing a run
+
+`fixed_seed` in cell 9 is 0 by default, which is upstream's behaviour: each
+trajectory draws its own random seed, its own binder length and its own
+helicity value. Set it to any other number and the run cell seeds numpy and
+`random` once before the loop, so that whole sequence repeats — trajectory 1
+gets the same seed and length it got last time, trajectory 2 the same, and so
+on. The seed used is in every design name as `_s<number>`, and in
+`trajectory_stats.csv`.
+
+What it does **not** promise is identical metrics. GPU floating-point
+reductions are not deterministic between runs, and MPNN's own sampling is not
+seeded here, so scores can move in the last decimal place. Treat it as "the
+same designs", not "the same numbers to the bit".
+
+Use it to re-examine one trajectory, or to compare two settings on the same
+starting points. Do not use it for a production campaign: a fixed seed draws
+the same binder lengths every time, so the search stops exploring.
+
+Each run is also recorded in `<binder_name>_run_settings.json`, which appends
+one entry per start of the run cell with the seed, the preset, the full
+`advanced_settings` and the filters — enough to tell which settings produced
+which rows after the fact.
+
+## Comparing settings: a fixed number of trajectories each
+
+`trajectories_this_run` in cell 9 stops the run cell once that many
+trajectories have been attempted in this execution of it. Set it to 50, run,
+change one setting, run again, and each configuration has had the same 50
+attempts.
+
+Two things make it different from upstream's `max_trajectories`, which is also
+in cell 9 and still works as it always did:
+
+| | `trajectories_this_run` | `max_trajectories` |
+|---|---|---|
+| counts | every attempt | only trajectories that passed the pLDDT and clash gates and wrote a row to `trajectory_stats.csv` |
+| counts from | zero, each time the run cell is started | the beginning of the campaign, across sessions |
+
+So `max_trajectories` is no safeguard against a run that rejects everything —
+rejected trajectories never write a row, so the count never moves — and it
+cannot express "50 more from here" once a campaign is underway.
+`trajectories_this_run` does both.
+
+Two caveats for comparisons. The other stopping conditions still apply, so a
+run can end before the budget if `number_of_final_designs` is reached (raise it,
+or use a fresh `design_path` per configuration) or if the rejection-rate monitor
+trips. And the designs of one configuration are not the designs of another
+unless `fixed_seed` is set as well — without it each run samples different
+lengths and seeds, so a 50-vs-50 comparison is comparing distributions, not
+pairs.
+
 ## Troubleshooting
 
 ### "Target number N of designs reached!" and it exits instantly
@@ -269,11 +321,15 @@ will already be in place.
 
 ### The same sequences come back every run
 
-That means no new design work happened. There is no global seed anywhere — each
-trajectory draws its own `seed` and samples its own length — so genuinely new
+That means no new design work happened. Unless `fixed_seed` is set, every
+trajectory draws its own `seed` and samples its own length, so genuinely new
 trajectories cannot repeat. Cell 12 reads the cumulative
 `final_design_stats.csv`, so it happily reprints old results. Check the
 `_s<number>` in the design names and the "Sampled Trajectories" counter.
+
+If `fixed_seed` *is* set, repeating is the point — and re-running it into the
+same `design_path` produces no work at all, since every design name is already
+on disk. The run cell says so and stops after 20 skips.
 
 ### A bad path costs 30 minutes
 
@@ -306,7 +362,7 @@ Checked cell by cell against
 | Initialise PyRosetta | 7 | byte-identical |
 | — | 8 | **added** — JAX / Python 3.13 shims |
 | — | 9 | **added** — tuning controls and presets |
-| Run BindCraft! | 10 | byte-identical (27 KB, the whole design loop) |
+| Run BindCraft! | 10 | design loop unchanged; two run controls wrapped around it — see below |
 | Consolidate & Rank | 11 | bug fix, post-processing only |
 | Top 20 Designs | 12 | byte-identical |
 | Top Design Display | 13 | guards an empty folder |
@@ -481,6 +537,30 @@ runs never compound.
   to end in a few minutes. **Designs from this mode are meaningless**, and it
   says so loudly.
 - *Custom* — uses whatever the fields below are set to.
+
+Two fields sit outside that machinery, under **Run controls**, and are used
+exactly as typed whichever preset is selected, because neither has anything to
+do with design quality:
+
+- `fixed_seed` — see [Reproducing a run](#reproducing-a-run).
+- `trajectories_this_run` — see
+  [Comparing settings](#comparing-settings-a-fixed-number-of-trajectories-each).
+
+### Cell 10 — run controls
+
+The design loop itself is upstream's, untouched. What is added sits around it:
+
+- The two cell 9 run controls above, read with `globals().get(...)` so a copy of
+  the notebook whose cell 9 predates them still runs exactly as upstream did.
+- A branch on the duplicate-name check. Upstream has none: it builds
+  `design_name` from the length and the seed, skips the trajectory if that file
+  already exists, and otherwise falls through to the top of `while True:`
+  without advancing any counter. With a fresh random seed per trajectory a
+  repeat is vanishingly rare, so this never mattered. A fixed seed makes it
+  certain — re-run into the same `design_path` and every name it generates is
+  already on disk — and the loop would spin forever printing nothing. It now
+  counts the skips and stops after 20 in a row with a message saying why.
+- The settings record written at the start of the cell logs both controls.
 
 ### Cell 11 — consolidate and rank
 
