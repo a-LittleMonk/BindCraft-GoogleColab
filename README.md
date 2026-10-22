@@ -34,7 +34,10 @@ on any Linux box with an NVIDIA GPU — your own machine or a rented one.
      or leave blank to let BindCraft choose
    - `binder_name` and `design_path` — the name and output folder for this campaign
 5. Run cells **1 through 14 in order**. Cells 8 and 9 must come after cell 6;
-   they raise an error telling you so if they don't.
+   they raise an error telling you so if they don't. Cell 9 is a panel of
+   settings; running it applies what it shows, so leaving it alone is fine.
+   If you change something in it afterwards, press **Apply** — the run cell
+   stops with `UNAPPLIED` rather than running the previous values.
 
 The target must be a clean PDB: no waters, no ligands, no alternate
 conformations. `examples/tgfb1.pdb` shows the expected shape.
@@ -203,10 +206,10 @@ on. The seed used is in every design name as `_s<number>`, and in
 `trajectory_stats.csv`.
 
 **It needs `preset` on `Custom`**, which means the other fields are used as
-typed too. The fields ship with the Peptide protocol's numbers, so check them
-against the protocol you are actually running: the cell prints every value that
-differs from that protocol's own `settings_advanced/*.json`, and anything you
-did not mean to change shows up in that list.
+typed too. Switching from `Production defaults` straight to `Custom` carries
+this protocol's own values across, so in practice only the seed has to be typed
+— and the cell prints every value that differs from the protocol's own
+`settings_advanced/*.json`, so anything else that moved shows up in that list.
 
 What it does **not** promise is identical metrics. GPU floating-point
 reductions are not deterministic between runs, and MPNN's own sampling is not
@@ -252,9 +255,10 @@ lengths and seeds, so a 50-vs-50 comparison is comparing distributions, not
 pairs.
 
 One configuration cannot be `Production defaults` itself, since the budget is
-ignored there. To benchmark against stock, read this protocol's values off the
-drift report under `Production defaults` and type those into `Custom`, or give
-the stock run a `max_trajectories` of its own and compare accepted designs.
+ignored there. To benchmark against stock, switch that preset to `Custom` —
+which carries the protocol's own values across unchanged — and set only the
+budget. The cell reporting "All values are at this protocol's stock settings" is
+the confirmation that nothing else moved.
 
 ## Troubleshooting
 
@@ -343,6 +347,22 @@ If `fixed_seed` *is* set, repeating is the point — and re-running it into the
 same `design_path` produces no work at all, since every design name is already
 on disk. The run cell says so and stops after 20 skips.
 
+### `UNAPPLIED: cell 9 shows values that have not been applied.`
+
+The run cell will not start on values the panel is only displaying. Press
+**Apply** in cell 9, or re-run the cell, which applies what it shows. The
+message lists every value that differs from what was last applied, so it is also
+the quickest way to see what you changed.
+
+### Cell 9 shows nothing, or an empty rectangle
+
+Cell 9 is an ipywidgets panel, and widgets need their JavaScript loaded, which
+is cell 1's `from ipywidgets import HTML, VBox`. If cell 1 has not run in this
+runtime, or the browser blocked it, the panel does not render. Re-run cell 1,
+then cell 9. The settings are still applied either way — the cell applies them
+as it runs, before anything is displayed — so a run started from an invisible
+panel uses this protocol's stock values, not nothing.
+
 ### A bad path costs 30 minutes
 
 BindCraft re-reads `starting_pdb` at the *end* of each trajectory to compute the
@@ -373,7 +393,7 @@ Checked cell by cell against
 | Import functions | 6 | byte-identical |
 | Initialise PyRosetta | 7 | byte-identical |
 | — | 8 | **added** — JAX / Python 3.13 shims |
-| — | 9 | **added** — tuning controls and presets |
+| — | 9 | **added** — tuning panel and presets |
 | Run BindCraft! | 10 | design loop unchanged; two run controls wrapped around it — see below |
 | Consolidate & Rank | 11 | bug fix, post-processing only |
 | Top 20 Designs | 12 | byte-identical |
@@ -540,6 +560,13 @@ A `preset` dropdown plus 16 fields: the values upstream keeps in
 limit), and two run controls of this notebook's own. It edits that source file
 from a pristine backup each time, so repeated runs never compound.
 
+It is an **ipywidgets panel**, not a Colab `@param` form. Under either preset
+every field is greyed out and shows that preset's own value — for `Production
+defaults`, the value from the protocol JSON cell 6 loaded — and switching back
+from `Custom` resets them all, so the defaults on show are always the ones a run
+would use. A Colab form cannot do that: the code that reads an `@param` field
+can neither disable it nor write a value back into it.
+
 - *Production defaults* — the reset. Restores **this protocol's own**
   `settings_advanced/*.json` values, snapshotted as they were loaded in cell 4,
   and rewrites the two gates back to upstream's `final_plddt < 0.7` and
@@ -549,7 +576,20 @@ from a pristine backup each time, so repeated runs never compound.
   0.1 so every trajectory reaches the downstream code. Checks the pipeline end
   to end in a few minutes. **Designs from this mode are meaningless**, and it
   says so loudly.
-- *Custom* — uses whatever the fields below are set to.
+- *Custom* — makes the fields editable, starting from the values on show.
+  Switching straight from `Production defaults` therefore starts from this
+  protocol's own values, with nothing to retype.
+
+Two things follow from being widgets rather than a form. Values live in the
+kernel, not in the notebook file, so a fresh runtime opens at the protocol's
+stock values instead of at whatever was typed last session; the panel is cached,
+so re-running the cell re-displays it with your values still in it, and only a
+runtime restart clears them. And a widget changes nothing by being changed, so
+the panel has an **Apply** button. Running the cell also applies what it shows,
+which is why a straight run of cells 1–14 needs no clicking; the button is for
+changing something afterwards without re-running the cell. The panel says
+whether what it shows has been applied, and the run cell refuses to start on
+values that have not been.
 
 The last two sit under **Run controls**. Upstream has no equivalent of either:
 
@@ -557,11 +597,11 @@ The last two sit under **Run controls**. Upstream has no equivalent of either:
 - `trajectories_this_run` — see
   [Comparing settings](#comparing-settings-a-fixed-number-of-trajectories-each).
 
-Both are 0 under either preset, and a value typed into them is used only when
-the preset is `Custom`. That is deliberate: a seeded run or a capped run is not
-an upstream run, so honouring either under `Production defaults` would make that
-label untrue. The cell says which values it ignored, so nothing is dropped
-silently.
+Both are 0 under either preset, and `Custom` is the only way to set them. That
+is deliberate: a seeded run or a capped run is not an upstream run, so letting
+either be set under `Production defaults` would make that label untrue. When
+they are in force they appear in the drift report with everything else that
+differs from stock, so a seeded run cannot be mistaken for a stock one.
 
 ### Cell 10 — the run loop
 
