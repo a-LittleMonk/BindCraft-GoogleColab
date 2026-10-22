@@ -34,8 +34,9 @@ on any Linux box with an NVIDIA GPU — your own machine or a rented one.
      or leave blank to let BindCraft choose
    - `binder_name` and `design_path` — the name and output folder for this campaign
 5. Run cells **1 through 14 in order**. Cells 8 and 9 must come after cell 6;
-   they raise an error telling you so if they don't. Cell 9 is a panel of
-   settings; running it applies what it shows, so leaving it alone is fine.
+   they raise an error telling you so if they don't. Cell 9 looks empty until
+   it is run — the panel is built by the cell, not drawn from its source — and
+   running it applies what the panel shows, so leaving it alone is fine.
    If you change something in it afterwards, press **Apply** — the run cell
    stops with `UNAPPLIED` rather than running the previous values.
 
@@ -354,14 +355,23 @@ The run cell will not start on values the panel is only displaying. Press
 message lists every value that differs from what was last applied, so it is also
 the quickest way to see what you changed.
 
-### Cell 9 shows nothing, or an empty rectangle
+### Cell 9 is empty in a notebook I have just opened
 
-Cell 9 is an ipywidgets panel, and widgets need their JavaScript loaded, which
-is cell 1's `from ipywidgets import HTML, VBox`. If cell 1 has not run in this
-runtime, or the browser blocked it, the panel does not render. Re-run cell 1,
-then cell 9. The settings are still applied either way — the cell applies them
-as it runs, before anything is displayed — so a run started from an invisible
-panel uses this protocol's stock values, not nothing.
+Expected. The panel is built by the cell, so it does not exist until the cell
+runs — unlike a Colab `@param` form, which the editor draws straight from the
+source. An unrun notebook shows a note saying so in its place.
+
+Nothing needs setting there in any case: running the cell applies `Production
+defaults`, which is upstream BindCraft for the protocol chosen in cell 4.
+
+### Cell 9 shows nothing after running, or an empty rectangle
+
+Widgets need their JavaScript loaded, which is cell 1's
+`from ipywidgets import HTML, VBox`. If cell 1 has not run in this runtime, or
+the browser blocked it, the panel does not render. Re-run cell 1, then cell 9.
+The settings are still applied either way — the cell applies them as it runs,
+before anything is displayed — so a run started from an invisible panel uses
+this protocol's stock values, not nothing.
 
 ### A bad path costs 30 minutes
 
