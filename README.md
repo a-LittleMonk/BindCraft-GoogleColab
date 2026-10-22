@@ -202,6 +202,12 @@ gets the same seed and length it got last time, trajectory 2 the same, and so
 on. The seed used is in every design name as `_s<number>`, and in
 `trajectory_stats.csv`.
 
+**It needs `preset` on `Custom`**, which means the other fields are used as
+typed too. The fields ship with the Peptide protocol's numbers, so check them
+against the protocol you are actually running: the cell prints every value that
+differs from that protocol's own `settings_advanced/*.json`, and anything you
+did not mean to change shows up in that list.
+
 What it does **not** promise is identical metrics. GPU floating-point
 reductions are not deterministic between runs, and MPNN's own sampling is not
 seeded here, so scores can move in the last decimal place. Treat it as "the
@@ -221,7 +227,8 @@ which rows after the fact.
 `trajectories_this_run` in cell 9 stops the run cell once that many
 trajectories have been attempted in this execution of it. Set it to 50, run,
 change one setting, run again, and each configuration has had the same 50
-attempts.
+attempts. Like `fixed_seed` it needs `preset` on `Custom` — which is no
+hardship here, since comparing settings means typing settings anyway.
 
 Two things make it different from upstream's `max_trajectories`, which is also
 in cell 9 and still works as it always did:
@@ -243,6 +250,11 @@ trips. And the designs of one configuration are not the designs of another
 unless `fixed_seed` is set as well — without it each run samples different
 lengths and seeds, so a 50-vs-50 comparison is comparing distributions, not
 pairs.
+
+One configuration cannot be `Production defaults` itself, since the budget is
+ignored there. To benchmark against stock, read this protocol's values off the
+drift report under `Production defaults` and type those into `Custom`, or give
+the stock run a `max_trajectories` of its own and compare accepted designs.
 
 ## Troubleshooting
 
@@ -522,31 +534,36 @@ the pipeline cannot run at all. Neither changes a number in the design maths.
 
 ### Cell 9 — tuning controls
 
-A `preset` dropdown plus 14 fields for values upstream hardcodes in
-`functions/colabdesign_utils.py`, including the trajectory pLDDT gate and the
-CA-clash limit. It edits that file from a pristine backup each time, so repeated
-runs never compound.
+A `preset` dropdown plus 16 fields: the values upstream keeps in
+`settings_advanced/*.json`, the two it hardcodes in
+`functions/colabdesign_utils.py` (the trajectory pLDDT gate and the CA-clash
+limit), and two run controls of this notebook's own. It edits that source file
+from a pristine backup each time, so repeated runs never compound.
 
 - *Production defaults* — the reset. Restores **this protocol's own**
   `settings_advanced/*.json` values, snapshotted as they were loaded in cell 4,
   and rewrites the two gates back to upstream's `final_plddt < 0.7` and
   `ca_clashes > 0` — verified to reproduce upstream's `colabdesign_utils.py`
-  byte for byte.
+  byte for byte, with both run controls back at 0.
 - *Fast debug* — cuts iterations roughly tenfold and drops the quality gate to
   0.1 so every trajectory reaches the downstream code. Checks the pipeline end
   to end in a few minutes. **Designs from this mode are meaningless**, and it
   says so loudly.
 - *Custom* — uses whatever the fields below are set to.
 
-Two fields sit outside that machinery, under **Run controls**, and are used
-exactly as typed whichever preset is selected, because neither has anything to
-do with design quality:
+The last two sit under **Run controls**. Upstream has no equivalent of either:
 
 - `fixed_seed` — see [Reproducing a run](#reproducing-a-run).
 - `trajectories_this_run` — see
   [Comparing settings](#comparing-settings-a-fixed-number-of-trajectories-each).
 
-### Cell 10 — run controls
+Both are 0 under either preset, and a value typed into them is used only when
+the preset is `Custom`. That is deliberate: a seeded run or a capped run is not
+an upstream run, so honouring either under `Production defaults` would make that
+label untrue. The cell says which values it ignored, so nothing is dropped
+silently.
+
+### Cell 10 — the run loop
 
 The design loop itself is upstream's, untouched. What is added sits around it:
 
